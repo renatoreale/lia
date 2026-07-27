@@ -1,14 +1,18 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, FileText, Home, Mail, Sparkles, Users } from "lucide-react";
+import { ArrowLeft, FileText, Home, Mail, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCondominium, getCondominiumStats } from "@/services/condominium-service";
+import { listDocumentsForCondominium } from "@/services/document-service";
 import { EditCondominiumForm } from "@/components/condomini/edit-condominium-form";
 import { ComingSoonPanel } from "@/components/condomini/coming-soon-panel";
+import { DocumentList } from "@/components/documenti/document-list";
+import { UploadDocumentDialog } from "@/components/documenti/upload-document-dialog";
+import { RagSearchPanel } from "@/components/ricerca/rag-search-panel";
 
 export default async function CondominiumDetailPage({
   params,
@@ -24,7 +28,10 @@ export default async function CondominiumDetailPage({
     notFound();
   }
 
-  const stats = await getCondominiumStats(id);
+  const [stats, documents] = await Promise.all([
+    getCondominiumStats(id),
+    listDocumentsForCondominium(id),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -92,11 +99,15 @@ export default async function CondominiumDetailPage({
         </TabsContent>
 
         <TabsContent value="documenti" className="mt-4">
-          <ComingSoonPanel
-            icon={FileText}
-            title="Gestione documentale"
-            description="Upload PDF, OCR automatico, chunking e indicizzazione vettoriale arrivano nella Fase 2 del progetto."
-          />
+          <Card>
+            <CardHeader className="flex-row items-center justify-between space-y-0">
+              <CardTitle>Documenti</CardTitle>
+              <UploadDocumentDialog condominiumId={condominium.id} />
+            </CardHeader>
+            <CardContent>
+              <DocumentList documents={documents} />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="email" className="mt-4">
@@ -108,11 +119,11 @@ export default async function CondominiumDetailPage({
         </TabsContent>
 
         <TabsContent value="ricerca-ai" className="mt-4">
-          <ComingSoonPanel
-            icon={Sparkles}
-            title="Ricerca semantica (RAG)"
-            description="La ricerca su verbali, delibere e bilanci con citazioni verificabili arriva nella Fase 2, una volta indicizzati i documenti."
-          />
+          <Card>
+            <CardContent className="py-4">
+              <RagSearchPanel condominiumId={condominium.id} />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
