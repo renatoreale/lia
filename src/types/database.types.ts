@@ -353,6 +353,13 @@ export type IntegrationRow = AuditColumns & {
   metadata: Json;
 };
 
+export type SuperAdminRow = {
+  user_id: string;
+  granted_by: string | null;
+  created_at: string;
+  notes: string | null;
+};
+
 type Table<Row, Optional extends keyof Row> = {
   Row: Row;
   Insert: InsertOf<Row, Optional>;
@@ -387,6 +394,7 @@ export interface Database {
       audit_logs: Table<AuditLogRow, AuditOptional>;
       settings: Table<SettingRow, AuditOptional | "value">;
       integrations: Table<IntegrationRow, AuditOptional | "status" | "scopes" | "metadata">;
+      super_admins: Table<SuperAdminRow, "created_at" | "granted_by" | "notes">;
     };
     Views: Record<string, never>;
     Enums: Record<string, never>;
@@ -395,6 +403,14 @@ export interface Database {
       is_company_admin: {
         Args: { p_company_id: string };
         Returns: boolean;
+      };
+      is_super_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      admin_list_user_stats: {
+        Args: Record<string, never>;
+        Returns: { user_id: string; condominiums_count: number; companies_count: number }[];
       };
       match_document_chunks: {
         Args: {

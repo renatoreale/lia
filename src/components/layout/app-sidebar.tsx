@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Scale } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { primaryNav, secondaryNav, type NavItem } from "@/config/nav";
+import { primaryNav, secondaryNav, superAdminNav, type NavItem } from "@/config/nav";
 import { Badge } from "@/components/ui/badge";
 
 function isActive(pathname: string, href: string) {
@@ -41,9 +41,11 @@ function NavLink({ item, pathname, badge }: { item: NavItem; pathname: string; b
 export function AppSidebar({
   toReviewEmails = 0,
   companyName,
+  isSuperAdmin = false,
 }: {
   toReviewEmails?: number;
   companyName?: string;
+  isSuperAdmin?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -81,6 +83,17 @@ export function AppSidebar({
             <NavLink key={item.href} item={item} pathname={pathname} />
           ))}
         </div>
+
+        {isSuperAdmin ? (
+          <div className="flex flex-col gap-0.5">
+            <p className="px-2.5 pb-1 text-xs font-medium tracking-wide text-sidebar-foreground/40 uppercase">
+              Piattaforma
+            </p>
+            {superAdminNav.map((item) => (
+              <NavLink key={item.href} item={item} pathname={pathname} />
+            ))}
+          </div>
+        ) : null}
       </nav>
     </aside>
   );

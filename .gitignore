@@ -43,3 +43,6 @@ next-env.d.ts
 
 # one-off convenience file (source of truth is supabase/migrations/*.sql)
 /combined_migrations.sql
+
+.vercel
+.env*

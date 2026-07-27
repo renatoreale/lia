@@ -29,7 +29,7 @@ export default async function DashboardLayout({
     ),
   ]);
 
-  const [{ count: toReviewEmails }, { data: notifications }] = await Promise.all([
+  const [{ count: toReviewEmails }, { data: notifications }, { data: isSuperAdmin }] = await Promise.all([
     supabase
       .from("emails")
       .select("id", { count: "exact", head: true })
@@ -41,11 +41,16 @@ export default async function DashboardLayout({
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(20),
+    supabase.rpc("is_super_admin"),
   ]);
 
   return (
     <div className="flex min-h-svh">
-      <AppSidebar toReviewEmails={toReviewEmails ?? 0} companyName={company.name} />
+      <AppSidebar
+        toReviewEmails={toReviewEmails ?? 0}
+        companyName={company.name}
+        isSuperAdmin={Boolean(isSuperAdmin)}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
         <AppTopbar
           userId={user.id}
@@ -54,6 +59,7 @@ export default async function DashboardLayout({
           avatarUrl={profile?.avatar_url ?? null}
           toReviewEmails={toReviewEmails ?? 0}
           initialNotifications={notifications ?? []}
+          isSuperAdmin={Boolean(isSuperAdmin)}
         />
         <main className="flex-1 bg-muted/30 p-4 sm:p-6">
           <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">{children}</div>

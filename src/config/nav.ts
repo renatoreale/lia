@@ -8,6 +8,7 @@ import {
   PenSquare,
   Plug,
   Settings,
+  ShieldCheck,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -33,4 +34,8 @@ export const secondaryNav: NavItem[] = [
   { title: "Utenti", href: "/utenti", icon: Users },
   { title: "Integrazioni", href: "/integrazioni", icon: Plug },
   { title: "Impostazioni", href: "/impostazioni", icon: Settings },
+];
+
+export const superAdminNav: NavItem[] = [
+  { title: "Super Admin", href: "/super-admin", icon: ShieldCheck },
 ];

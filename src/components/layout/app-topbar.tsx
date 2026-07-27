@@ -15,14 +15,20 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { primaryNav, secondaryNav } from "@/config/nav";
+import { primaryNav, secondaryNav, superAdminNav } from "@/config/nav";
 import { GlobalSearch } from "@/components/layout/global-search";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { NotificationsBell } from "@/components/layout/notifications-bell";
 import { NavUser } from "@/components/layout/nav-user";
 import type { NotificationRow } from "@/types/database.types";
 
-function MobileNav({ toReviewEmails }: { toReviewEmails: number }) {
+function MobileNav({
+  toReviewEmails,
+  isSuperAdmin,
+}: {
+  toReviewEmails: number;
+  isSuperAdmin: boolean;
+}) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
 
@@ -91,6 +97,28 @@ function MobileNav({ toReviewEmails }: { toReviewEmails: number }) {
               );
             })}
           </div>
+          {isSuperAdmin ? (
+            <div className="flex flex-col gap-0.5">
+              {superAdminNav.map((item) => {
+                const Icon = item.icon;
+                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium",
+                      active ? "bg-accent text-accent-foreground" : "text-muted-foreground",
+                    )}
+                  >
+                    <Icon className="size-4" />
+                    {item.title}
+                  </Link>
+                );
+              })}
+            </div>
+          ) : null}
         </nav>
       </SheetContent>
     </Sheet>
@@ -104,6 +132,7 @@ export function AppTopbar({
   avatarUrl,
   toReviewEmails,
   initialNotifications,
+  isSuperAdmin = false,
 }: {
   userId: string;
   fullName: string | null;
@@ -111,10 +140,11 @@ export function AppTopbar({
   avatarUrl: string | null;
   toReviewEmails: number;
   initialNotifications: NotificationRow[];
+  isSuperAdmin?: boolean;
 }) {
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/60">
-      <MobileNav toReviewEmails={toReviewEmails} />
+      <MobileNav toReviewEmails={toReviewEmails} isSuperAdmin={isSuperAdmin} />
 
       <div className="flex flex-1 justify-start">
         <GlobalSearch />
