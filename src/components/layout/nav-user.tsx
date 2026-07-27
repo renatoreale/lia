@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -55,25 +56,29 @@ export function NavUser({
         }
       />
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="flex flex-col gap-0.5 font-normal">
-          <span className="text-sm font-medium text-foreground">{fullName ?? "Il mio profilo"}</span>
-          <span className="truncate text-xs text-muted-foreground">{email}</span>
-        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="flex flex-col gap-0.5 font-normal">
+            <span className="text-sm font-medium text-foreground">{fullName ?? "Il mio profilo"}</span>
+            <span className="truncate text-xs text-muted-foreground">{email}</span>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          render={
-            <a href="/impostazioni">
-              <User /> Profilo
-            </a>
-          }
-        />
-        <DropdownMenuItem
-          render={
-            <a href="/impostazioni">
-              <Settings /> Impostazioni
-            </a>
-          }
-        />
+        <DropdownMenuGroup>
+          <DropdownMenuItem
+            render={
+              <a href="/impostazioni">
+                <User /> Profilo
+              </a>
+            }
+          />
+          <DropdownMenuItem
+            render={
+              <a href="/impostazioni">
+                <Settings /> Impostazioni
+              </a>
+            }
+          />
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
           <LogOut /> Esci
