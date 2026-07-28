@@ -9,14 +9,14 @@ Auth, Storage, Realtime, Edge Functions) · pgvector · OpenAI**.
 
 ## Stato del progetto
 
-Il progetto è sviluppato in 4 fasi. Questa release copre la **Fase 1 —
-Fondamenta**.
+Il progetto è sviluppato in 4 fasi. Questa release copre la **Fase 3 —
+Email AI**.
 
 | Fase | Contenuto | Stato |
 |---|---|---|
 | 1 | Architettura, database Supabase, autenticazione, RLS, Storage, dashboard iniziale | ✅ Completata |
-| 2 | Upload documenti, OCR, chunking, pgvector, ricerca semantica (RAG) | ⏳ Non ancora avviata |
-| 3 | Integrazione Gmail/Outlook, classificazione email, bozze AI, flusso di approvazione | ⏳ Non ancora avviata |
+| 2 | Upload documenti, OCR, chunking, pgvector, ricerca semantica (RAG) | ✅ Completata |
+| 3 | Integrazione Gmail/Outlook, classificazione email, bozze AI, flusso di approvazione | ✅ Completata |
 | 4 | Apprendimento dalle correzioni, statistiche avanzate, notifiche realtime, ruoli avanzati | ⏳ Non ancora avviata |
 
 Le pagine relative alle fasi future sono già presenti come route funzionanti
@@ -45,24 +45,39 @@ src/
   app/
     (auth)/            login, signup
     (dashboard)/        dashboard, condomini, documenti, ricerca, email,
-                         bozze, statistiche, utenti, integrazioni, impostazioni
-    api/                route handler (es. inviti utenti)
+                         email/[threadId], email/bozze, statistiche, utenti,
+                         integrazioni, impostazioni
+    api/
+      team/invite/       invito utenti
+      integrations/
+        gmail/connect|callback/    OAuth Gmail
+        outlook/connect|callback/  OAuth Outlook (Microsoft Graph)
+      cron/sync-emails/   endpoint chiamato da Vercel Cron (vercel.json)
     auth/callback/      scambio codice OAuth/conferma email
   components/
     ui/                 componenti shadcn/ui (Base UI)
     layout/              sidebar, topbar, ricerca globale, notifiche
-    condomini/, utenti/, dashboard/, shared/
+    condomini/, utenti/, dashboard/, documenti/, email/, integrazioni/, shared/
   lib/
     supabase/            client browser / server / admin / middleware
-    ai/                  servizi AI (Fase 2+)
+    ai/                  servizi AI: embedding, chunking, OCR, RAG (Fase 2)
+    crypto/token-cipher.ts  cifratura AES-256-GCM dei token OAuth (Fase 3)
+    email-providers/     invio risposte via Gmail/Graph REST (Fase 3)
     validators/          schemi zod
-  services/               data access layer lato server
+  services/               data access layer lato server (incl. email-service,
+                           integration-service)
   types/database.types.ts tipi TypeScript dello schema Supabase
   hooks/, config/
 
 supabase/
   migrations/            schema SQL, RLS, storage, funzioni RAG, seed (numerate)
-  functions/              Edge Functions (scaffolding per la Fase 2/3)
+  functions/
+    _shared/               helper condivisi (cifratura, client admin, OpenAI,
+                            Gmail/Graph REST, matching condominio)
+    sync-gmail/, sync-outlook/    import email + allegati (Fase 3)
+    classify-email/               categoria/urgenza/riassunto AI (Fase 3)
+    generate-email-draft/         bozza di risposta RAG (Fase 3)
+    process-document/, generate-embedding/, rag-query/  scaffolding Fase 2+
   seed/seed.ts            dati demo (idempotente)
 
 docker/, Dockerfile, docker-compose.yml
@@ -105,6 +120,10 @@ Compila con i valori da *Project Settings → API* del progetto Supabase:
 - `SUPABASE_SERVICE_ROLE_KEY` — segreta, solo server-side (inviti utenti,
   Edge Functions). Non esporla mai al client.
 - `OPENAI_API_KEY` — usata a partire dalla Fase 2 (embedding, RAG, bozze).
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, `MICROSOFT_CLIENT_ID` /
+  `MICROSOFT_CLIENT_SECRET` / `MICROSOFT_TENANT_ID`, `TOKEN_ENCRYPTION_KEY`,
+  `CRON_SECRET` — Fase 3 (integrazioni email). Vedi la sezione dedicata
+  qui sotto per come ottenerle: **"Fase 3 — Integrazioni email"**.
 
 ### 3. Installazione e avvio
 
@@ -140,6 +159,96 @@ senza dipendere da un client CLI. Una volta collegato il progetto Supabase:
 npm run db:types
 ```
 
+## Fase 3 — Integrazioni email
+
+Ogni studio può collegare Gmail e/o Outlook a scelta (`/integrazioni`): il
+sync, la classificazione AI e la generazione delle bozze girano come
+Supabase Edge Functions (`supabase/functions/sync-gmail`, `sync-outlook`,
+`classify-email`, `generate-email-draft`), invocate ogni 15 minuti da un
+Vercel Cron job oppure a mano dal pulsante "Sincronizza ora". Le bozze non
+vengono **mai** inviate automaticamente: restano in `/email/bozze` finché un
+umano non le approva.
+
+Per usarla in locale/produzione servono due app OAuth (una per Gmail, una
+per Outlook) e una chiave di cifratura per i token. Nessuna delle due è
+obbligatoria per il resto dell'app: senza credenziali, le card Gmail/Outlook
+in Integrazioni restano semplicemente "Non connesso".
+
+### 1. App OAuth Google (Gmail)
+
+1. Crea (o riusa) un progetto su [Google Cloud Console](https://console.cloud.google.com).
+2. **APIs & Services → Library**: abilita **Gmail API**.
+3. **APIs & Services → OAuth consent screen**: tipo *External* (o *Internal*
+   se workspace aziendale), aggiungi il tuo dominio/email come test user in
+   fase di sviluppo.
+4. **APIs & Services → Credentials → Create credentials → OAuth client ID**,
+   tipo *Web application*. In **Authorized redirect URIs** aggiungi, per
+   ogni ambiente che userai:
+   - `http://localhost:3000/api/integrations/gmail/callback` (sviluppo)
+   - `https://<tuo-dominio>/api/integrations/gmail/callback` (produzione)
+5. Copia **Client ID** e **Client secret** in `GOOGLE_CLIENT_ID` /
+   `GOOGLE_CLIENT_SECRET`.
+
+### 2. App OAuth Microsoft (Outlook)
+
+1. [Azure Portal](https://portal.azure.com) → **Microsoft Entra ID → App
+   registrations → New registration**. Come *Supported account types* scegli
+   *Accounts in any organizational directory and personal Microsoft
+   accounts* (o restringi al tuo tenant, impostando poi
+   `MICROSOFT_TENANT_ID`).
+2. **Redirect URI** (tipo *Web*):
+   - `http://localhost:3000/api/integrations/outlook/callback`
+   - `https://<tuo-dominio>/api/integrations/outlook/callback`
+3. **Certificates & secrets → New client secret**: copia il valore subito
+   (non sarà più visibile dopo).
+4. **API permissions → Add a permission → Microsoft Graph → Delegated**:
+   `Mail.Read`, `Mail.Send`, `offline_access`, `email`, `openid`.
+5. Copia **Application (client) ID**, il client secret e (opzionale, se hai
+   ristretto il tenant) il **Directory (tenant) ID** in
+   `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` /
+   `MICROSOFT_TENANT_ID`. Lasciando `MICROSOFT_TENANT_ID` vuoto viene usato
+   `common` (account personali e aziendali di qualsiasi tenant).
+
+### 3. Chiave di cifratura token e secret del cron
+
+```bash
+openssl rand -base64 32   # -> TOKEN_ENCRYPTION_KEY
+openssl rand -base64 32   # -> CRON_SECRET
+```
+
+`TOKEN_ENCRYPTION_KEY` cifra `integrations.access_token_encrypted` /
+`refresh_token_encrypted` (AES-256-GCM, vedi
+`src/lib/crypto/token-cipher.ts`) prima che tocchino il database — la
+tabella non contiene mai un token in chiaro. `CRON_SECRET` protegge
+`/api/cron/sync-emails` da chiamate non autorizzate.
+
+### 4. Configurare le Edge Functions
+
+Le Edge Function girano su Supabase, non su Vercel: non leggono
+`.env.local`. Vanno impostate come secret del progetto Supabase (stessi
+nomi, stessi valori):
+
+```bash
+supabase secrets set \
+  GOOGLE_CLIENT_ID=... GOOGLE_CLIENT_SECRET=... \
+  MICROSOFT_CLIENT_ID=... MICROSOFT_CLIENT_SECRET=... MICROSOFT_TENANT_ID=... \
+  TOKEN_ENCRYPTION_KEY=... OPENAI_API_KEY=...
+
+supabase functions deploy sync-gmail sync-outlook classify-email generate-email-draft
+```
+
+(`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` sono già
+disponibili automaticamente in ogni Edge Function: non impostarli a mano.)
+
+### 5. Vercel Cron
+
+`vercel.json` definisce già il job (`/api/cron/sync-emails` ogni 15 minuti).
+Su Vercel, se `CRON_SECRET` è impostato tra le Environment Variables del
+progetto, la piattaforma lo invia automaticamente come header
+`Authorization: Bearer <CRON_SECRET>` alle chiamate cron — nessuna
+configurazione aggiuntiva richiesta. In locale il job non parte da solo: usa
+il pulsante "Sincronizza ora" in `/integrazioni`.
+
 ## Script disponibili
 
 | Comando | Descrizione |
@@ -170,14 +279,25 @@ runtime-only.
 2. **Vercel** (consigliato per Next.js):
    - collega il repository, imposta le env var (`NEXT_PUBLIC_SUPABASE_URL`,
      `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
-     `OPENAI_API_KEY`) come Environment Variables del progetto;
-   - build command e output sono rilevati automaticamente (Next.js).
+     `OPENAI_API_KEY`, e per la Fase 3 `GOOGLE_CLIENT_ID/SECRET`,
+     `MICROSOFT_CLIENT_ID/SECRET/TENANT_ID`, `TOKEN_ENCRYPTION_KEY`,
+     `CRON_SECRET` — vedi "Fase 3 — Integrazioni email") come Environment
+     Variables del progetto;
+   - build command e output sono rilevati automaticamente (Next.js);
+   - `vercel.json` registra già il cron `/api/cron/sync-emails` (ogni 15
+     minuti).
    - in alternativa, l'immagine Docker è pronta per qualunque piattaforma
-     container (Cloud Run, ECS, Fly.io, ...).
+     container (Cloud Run, ECS, Fly.io, ...) — in quel caso il cron va
+     schedulato esternamente (es. `curl` con l'header `Authorization`
+     corretto da un job di sistema).
 3. **Storage**: i bucket (`documents`, `email-attachments`, `avatars`) e le
    relative policy sono creati dalla migrazione `0011_storage.sql`.
-4. **Edge Functions** (Fase 2/3): `supabase functions deploy <nome>` per
-   OCR, generazione embedding, classificazione email, sync Gmail/Outlook.
+4. **Edge Functions**: `supabase functions deploy sync-gmail sync-outlook
+   classify-email generate-email-draft` (Fase 3, richiede prima i secret —
+   vedi "Fase 3 — Integrazioni email"). Le cartelle `process-document/`,
+   `generate-embedding/`, `rag-query/` restano scaffolding vuoto: la
+   pipeline RAG della Fase 2 gira lato Next.js (`src/lib/ai/`), non come
+   Edge Function.
 5. **Backup**: Point-in-Time Recovery di Supabase (piano Pro+) per il
    database; versioning nativo dello Storage bucket per i documenti.
 
@@ -193,6 +313,13 @@ runtime-only.
   membri e integrazioni — senza foreign key verso le entità tracciate, per
   poter registrare anche le cancellazioni.
 - Le chiavi `service_role`/OpenAI restano sempre server-side.
+- **Token OAuth Gmail/Outlook** cifrati AES-256-GCM prima di essere salvati
+  in `integrations` (mai in chiaro nel database, vedi
+  `src/lib/crypto/token-cipher.ts`). Le Edge Function di pipeline
+  (`classify-email`, `generate-email-draft`) accettano solo chiamate con la
+  service-role key; `sync-gmail`/`sync-outlook` accettano anche un utente
+  autenticato, ma solo se `is_company_admin`/proprietario dell'integrazione
+  (vedi `supabase/functions/_shared/authorize-integration.ts`).
 
 ## Note tecniche
 

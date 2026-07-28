@@ -1,17 +1,32 @@
 import type { Metadata } from "next";
-import { Inbox } from "lucide-react";
 
-import { PlaceholderPage } from "@/components/shared/placeholder-page";
+import { EmailQueue } from "@/components/email/email-queue";
+import { listCondominiums } from "@/services/condominium-service";
+import { listEmailQueue, listUnclassifiedEmails } from "@/services/email-service";
 
 export const metadata: Metadata = { title: "Email" };
 
-export default function EmailPage() {
+export default async function EmailPage() {
+  const [emails, unclassified, condominiums] = await Promise.all([
+    listEmailQueue(),
+    listUnclassifiedEmails(),
+    listCondominiums(),
+  ]);
+
   return (
-    <PlaceholderPage
-      icon={Inbox}
-      title="Email"
-      description="Da approvare, urgenti, in attesa, bozze e inviate — tutto in un'unica coda di lavoro."
-      phase="L'integrazione Gmail/Outlook, la classificazione automatica e il flusso di approvazione arrivano nella Fase 3 — Email AI."
-    />
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Email</h1>
+        <p className="text-sm text-muted-foreground">
+          Da approvare, urgenti, in attesa, bozze e inviate — tutto in un&apos;unica coda di lavoro.
+        </p>
+      </div>
+
+      <EmailQueue
+        emails={emails}
+        unclassified={unclassified}
+        condominiums={condominiums.map((c) => ({ id: c.id, name: c.name }))}
+      />
+    </div>
   );
 }

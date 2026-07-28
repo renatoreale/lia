@@ -404,6 +404,10 @@ export interface Database {
         Args: { p_company_id: string };
         Returns: boolean;
       };
+      can_write_condominium: {
+        Args: { p_condominium_id: string };
+        Returns: boolean;
+      };
       is_super_admin: {
         Args: Record<string, never>;
         Returns: boolean;
