@@ -7,18 +7,10 @@
 import { createAdminClient } from "../_shared/supabase-admin.ts";
 import { requireServiceRole } from "../_shared/require-service-role.ts";
 import { CHAT_MODEL, getOpenAIClient } from "../_shared/openai.ts";
+import { stripHtml } from "../_shared/strip-html.ts";
 
 const CATEGORIES = ["amministrativo", "manutenzione", "morosita", "reclamo", "informazioni", "altro"] as const;
 const URGENCIES = ["low", "medium", "high", "critical"] as const;
-
-function stripHtml(html: string): string {
-  return html
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 Deno.serve(async (req) => {
   const admin = createAdminClient();
