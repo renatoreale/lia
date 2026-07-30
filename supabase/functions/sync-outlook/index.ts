@@ -28,7 +28,8 @@ Deno.serve(async (req) => {
     if (fetchError || !integration) throw new Error("Integrazione Outlook non trovata.");
     await assertCanAccessIntegration(req, integration.company_id);
 
-    if (integration.status !== "connected" || !integration.refresh_token_encrypted) {
+    // See sync-gmail/index.ts for why this isn't gated on integration.status.
+    if (!integration.refresh_token_encrypted) {
       throw new Error("Integrazione Outlook non connessa.");
     }
 

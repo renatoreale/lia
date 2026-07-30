@@ -38,7 +38,13 @@ Deno.serve(async (req) => {
     if (fetchError || !integration) throw new Error("Integrazione Gmail non trovata.");
     await assertCanAccessIntegration(req, integration.company_id);
 
-    if (integration.status !== "connected" || !integration.refresh_token_encrypted) {
+    // Deliberately not gated on integration.status === "connected": that field
+    // gets set to "error" by this same function's catch block on a prior
+    // failed attempt, which would otherwise make "Sincronizza ora" unable to
+    // ever retry after a single transient failure. The refresh token is the
+    // only real precondition; disconnectIntegration() nulls it out, so a
+    // disconnected integration is already excluded by this check alone.
+    if (!integration.refresh_token_encrypted) {
       throw new Error("Integrazione Gmail non connessa.");
     }
 
