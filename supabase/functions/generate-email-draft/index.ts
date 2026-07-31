@@ -9,6 +9,7 @@
 import { createAdminClient } from "../_shared/supabase-admin.ts";
 import { requireServiceRole } from "../_shared/require-service-role.ts";
 import { CHAT_MODEL, EMBEDDING_MODEL, getOpenAIClient } from "../_shared/openai.ts";
+import { stripHtml } from "../_shared/strip-html.ts";
 
 const MATCH_COUNT = 6;
 // See src/lib/ai/rag.ts for why these thresholds are calibrated against
@@ -21,10 +22,6 @@ const CONFIDENCE_CEIL = 0.55;
 function normalizeConfidence(rawSimilarity: number): number {
   const scaled = (rawSimilarity - CONFIDENCE_FLOOR) / (CONFIDENCE_CEIL - CONFIDENCE_FLOOR);
   return Math.max(0, Math.min(1, scaled));
-}
-
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
 Deno.serve(async (req) => {

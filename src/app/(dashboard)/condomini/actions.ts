@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
 import { condominiumSchema, type CondominiumInput } from "@/lib/validators/condominium";
+import { ownerSchema, type OwnerInput } from "@/lib/validators/owner";
 import { getOrCreateDefaultCompany } from "@/services/company-service";
 
 export async function createCondominium(input: CondominiumInput) {
@@ -80,4 +81,57 @@ export async function updateCondominium(id: string, input: CondominiumInput) {
 
   revalidatePath("/condomini");
   revalidatePath(`/condomini/${id}`);
+}
+
+export async function createOwner(condominiumId: string, input: OwnerInput) {
+  const parsed = ownerSchema.parse(input);
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("owners").insert({
+    condominium_id: condominiumId,
+    first_name: parsed.first_name,
+    last_name: parsed.last_name,
+    email: parsed.email || null,
+    phone: parsed.phone || null,
+    fiscal_code: parsed.fiscal_code || null,
+    notes: parsed.notes || null,
+  });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/condomini/${condominiumId}`);
+}
+
+export async function updateOwner(ownerId: string, condominiumId: string, input: OwnerInput) {
+  const parsed = ownerSchema.parse(input);
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("owners")
+    .update({
+      first_name: parsed.first_name,
+      last_name: parsed.last_name,
+      email: parsed.email || null,
+      phone: parsed.phone || null,
+      fiscal_code: parsed.fiscal_code || null,
+      notes: parsed.notes || null,
+    })
+    .eq("id", ownerId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/condomini/${condominiumId}`);
+}
+
+export async function deleteOwner(ownerId: string, condominiumId: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("owners")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", ownerId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/condomini/${condominiumId}`);
 }

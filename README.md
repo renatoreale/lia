@@ -164,8 +164,10 @@ npm run db:types
 Ogni studio può collegare Gmail e/o Outlook a scelta (`/integrazioni`): il
 sync, la classificazione AI e la generazione delle bozze girano come
 Supabase Edge Functions (`supabase/functions/sync-gmail`, `sync-outlook`,
-`classify-email`, `generate-email-draft`), invocate ogni 15 minuti da un
-Vercel Cron job oppure a mano dal pulsante "Sincronizza ora". Le bozze non
+`classify-email`, `generate-email-draft`), invocate una volta al giorno da un
+Vercel Cron job (limite del piano Hobby: max un cron/giorno -- con il piano
+Pro si può aumentare la frequenza in `vercel.json`) oppure a mano dal
+pulsante "Sincronizza ora". Le bozze non
 vengono **mai** inviate automaticamente: restano in `/email/bozze` finché un
 umano non le approva.
 
@@ -242,7 +244,10 @@ disponibili automaticamente in ogni Edge Function: non impostarli a mano.)
 
 ### 5. Vercel Cron
 
-`vercel.json` definisce già il job (`/api/cron/sync-emails` ogni 15 minuti).
+`vercel.json` definisce già il job (`/api/cron/sync-emails` una volta al
+giorno, alle 06:00 UTC -- il piano Hobby di Vercel permette al massimo un
+cron/giorno; con il piano Pro si può alzare la frequenza modificando lo
+`schedule` in `vercel.json`).
 Su Vercel, se `CRON_SECRET` è impostato tra le Environment Variables del
 progetto, la piattaforma lo invia automaticamente come header
 `Authorization: Bearer <CRON_SECRET>` alle chiamate cron — nessuna

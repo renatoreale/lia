@@ -5,7 +5,8 @@
 import { createAdminClient } from "../_shared/supabase-admin.ts";
 import { assertCanAccessIntegration } from "../_shared/authorize-integration.ts";
 import { decryptToken, encryptToken } from "../_shared/token-cipher.ts";
-import { matchCondominiumByEmails } from "../_shared/match-condominium.ts";
+import { matchCondominium } from "../_shared/match-condominium.ts";
+import { stripHtml } from "../_shared/strip-html.ts";
 import { fetchOutlookDelta, getOutlookAttachments, refreshOutlookAccessToken } from "../_shared/graph-api.ts";
 
 Deno.serve(async (req) => {
@@ -28,7 +29,8 @@ Deno.serve(async (req) => {
     if (fetchError || !integration) throw new Error("Integrazione Outlook non trovata.");
     await assertCanAccessIntegration(req, integration.company_id);
 
-    if (integration.status !== "connected" || !integration.refresh_token_encrypted) {
+    // See sync-gmail/index.ts for why this isn't gated on integration.status.
+    if (!integration.refresh_token_encrypted) {
       throw new Error("Integrazione Outlook non connessa.");
     }
 
@@ -71,7 +73,15 @@ Deno.serve(async (req) => {
       if (!thread) {
         let condominiumId = threadCondominiumCache.get(message.conversationId);
         if (condominiumId === undefined) {
-          condominiumId = await matchCondominiumByEmails(admin, integration.company_id, participants);
+          condominiumId = await matchCondominium(admin, integration.company_id, {
+            participants,
+            text: [
+              message.subject,
+              message.bodyText || (message.bodyHtml ? stripHtml(message.bodyHtml) : ""),
+            ]
+              .filter(Boolean)
+              .join("\n"),
+          });
           threadCondominiumCache.set(message.conversationId, condominiumId);
         }
 

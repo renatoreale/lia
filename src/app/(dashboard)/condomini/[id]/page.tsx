@@ -8,8 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCondominium, getCondominiumStats } from "@/services/condominium-service";
 import { listDocumentsForCondominium } from "@/services/document-service";
+import { listOwnersForCondominium } from "@/services/owner-service";
 import { EditCondominiumForm } from "@/components/condomini/edit-condominium-form";
 import { ComingSoonPanel } from "@/components/condomini/coming-soon-panel";
+import { OwnerDialog } from "@/components/condomini/owner-dialog";
+import { OwnerList } from "@/components/condomini/owner-list";
 import { DocumentList } from "@/components/documenti/document-list";
 import { UploadDocumentDialog } from "@/components/documenti/upload-document-dialog";
 import { RagSearchPanel } from "@/components/ricerca/rag-search-panel";
@@ -28,9 +31,10 @@ export default async function CondominiumDetailPage({
     notFound();
   }
 
-  const [stats, documents] = await Promise.all([
+  const [stats, documents, owners] = await Promise.all([
     getCondominiumStats(id),
     listDocumentsForCondominium(id),
+    listOwnersForCondominium(id),
   ]);
 
   return (
@@ -83,6 +87,7 @@ export default async function CondominiumDetailPage({
         <TabsList>
           <TabsTrigger value="panoramica">Panoramica</TabsTrigger>
           <TabsTrigger value="documenti">Documenti</TabsTrigger>
+          <TabsTrigger value="proprietari">Proprietari</TabsTrigger>
           <TabsTrigger value="email">Email</TabsTrigger>
           <TabsTrigger value="ricerca-ai">Ricerca AI</TabsTrigger>
         </TabsList>
@@ -106,6 +111,21 @@ export default async function CondominiumDetailPage({
             </CardHeader>
             <CardContent>
               <DocumentList documents={documents} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="proprietari" className="mt-4">
+          <Card>
+            <CardHeader className="flex-row items-center justify-between space-y-0">
+              <CardTitle>Proprietari</CardTitle>
+              <OwnerDialog
+                condominiumId={condominium.id}
+                trigger={<Button>Aggiungi proprietario</Button>}
+              />
+            </CardHeader>
+            <CardContent>
+              <OwnerList owners={owners} condominiumId={condominium.id} />
             </CardContent>
           </Card>
         </TabsContent>

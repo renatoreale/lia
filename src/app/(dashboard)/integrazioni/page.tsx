@@ -76,8 +76,8 @@ export default async function IntegrazioniPage({
         <Alert>
           <AlertTitle>Casella collegata</AlertTitle>
           <AlertDescription>
-            {connectedParam === "gmail" ? "Gmail" : "Outlook"} è ora connesso. La prima sincronizzazione
-            parte automaticamente ogni 15 minuti, oppure puoi avviarla subito con &quot;Sincronizza ora&quot;.
+            {connectedParam === "gmail" ? "Gmail" : "Outlook"} è ora connesso. La sincronizzazione parte
+            automaticamente una volta al giorno, oppure puoi avviarla subito con &quot;Sincronizza ora&quot;.
           </AlertDescription>
         </Alert>
       ) : null}
