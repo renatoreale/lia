@@ -176,6 +176,18 @@ per Outlook) e una chiave di cifratura per i token. Nessuna delle due è
 obbligatoria per il resto dell'app: senza credenziali, le card Gmail/Outlook
 in Integrazioni restano semplicemente "Non connesso".
 
+### 0. `APP_URL`
+
+Imposta `APP_URL` (in `.env.local` e come Environment Variable su Vercel)
+sull'indirizzo **stabile** dell'app, es. `https://lia-beta-five.vercel.app`
+(senza slash finale) — non uno degli indirizzi univoci che Vercel genera a
+ogni deploy (`lia-<hash>-liasoft.vercel.app`). I redirect URI di Gmail/
+Outlook si costruiscono a partire da questo valore: se apri l'app da un
+indirizzo diverso da quello registrato in Google Cloud Console/Azure AD,
+il collegamento fallisce con `redirect_uri_mismatch`. In locale puoi
+lasciarlo vuoto (usa automaticamente `http://localhost:3000` o la porta
+attiva).
+
 ### 1. App OAuth Google (Gmail)
 
 1. Crea (o riusa) un progetto su [Google Cloud Console](https://console.cloud.google.com).
@@ -187,7 +199,9 @@ in Integrazioni restano semplicemente "Non connesso".
    tipo *Web application*. In **Authorized redirect URIs** aggiungi, per
    ogni ambiente che userai:
    - `http://localhost:3000/api/integrations/gmail/callback` (sviluppo)
-   - `https://<tuo-dominio>/api/integrations/gmail/callback` (produzione)
+   - `<APP_URL>/api/integrations/gmail/callback` (produzione — l'`APP_URL`
+     impostato al punto 0 qui sopra, es.
+     `https://lia-beta-five.vercel.app/api/integrations/gmail/callback`)
 5. Copia **Client ID** e **Client secret** in `GOOGLE_CLIENT_ID` /
    `GOOGLE_CLIENT_SECRET`.
 
@@ -200,7 +214,7 @@ in Integrazioni restano semplicemente "Non connesso".
    `MICROSOFT_TENANT_ID`).
 2. **Redirect URI** (tipo *Web*):
    - `http://localhost:3000/api/integrations/outlook/callback`
-   - `https://<tuo-dominio>/api/integrations/outlook/callback`
+   - `<APP_URL>/api/integrations/outlook/callback` (vedi punto 0 qui sopra)
 3. **Certificates & secrets → New client secret**: copia il valore subito
    (non sarà più visibile dopo).
 4. **API permissions → Add a permission → Microsoft Graph → Delegated**:

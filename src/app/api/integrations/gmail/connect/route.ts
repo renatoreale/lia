@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getOAuthAppOrigin } from "@/lib/oauth-app-origin";
 
 const GMAIL_SCOPES = [
   "https://www.googleapis.com/auth/gmail.readonly",
@@ -36,7 +37,7 @@ export async function GET(request: Request) {
   }
 
   const nonce = crypto.randomUUID();
-  const redirectUri = `${url.origin}/api/integrations/gmail/callback`;
+  const redirectUri = `${getOAuthAppOrigin(url.origin)}/api/integrations/gmail/callback`;
 
   const authorizeUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   authorizeUrl.searchParams.set("client_id", clientId);

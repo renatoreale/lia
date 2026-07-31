@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { encryptToken } from "@/lib/crypto/token-cipher";
 import { createClient } from "@/lib/supabase/server";
+import { getOAuthAppOrigin } from "@/lib/oauth-app-origin";
 
 const OAUTH_STATE_COOKIE = "gmail_oauth_state";
 
@@ -64,7 +65,7 @@ export async function GET(request: Request) {
     return redirectToIntegrations({ error: "gmail_not_configured" });
   }
 
-  const redirectUri = `${url.origin}/api/integrations/gmail/callback`;
+  const redirectUri = `${getOAuthAppOrigin(url.origin)}/api/integrations/gmail/callback`;
   const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },

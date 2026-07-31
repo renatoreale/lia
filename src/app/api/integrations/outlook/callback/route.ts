@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { encryptToken } from "@/lib/crypto/token-cipher";
 import { createClient } from "@/lib/supabase/server";
+import { getOAuthAppOrigin } from "@/lib/oauth-app-origin";
 
 const OAUTH_STATE_COOKIE = "outlook_oauth_state";
 
@@ -65,7 +66,7 @@ export async function GET(request: Request) {
   }
 
   const tenant = process.env.MICROSOFT_TENANT_ID || "common";
-  const redirectUri = `${url.origin}/api/integrations/outlook/callback`;
+  const redirectUri = `${getOAuthAppOrigin(url.origin)}/api/integrations/outlook/callback`;
   const tokenResponse = await fetch(`https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
