@@ -95,7 +95,15 @@ Deno.serve(async (req) => {
       .eq("id", email_id);
 
     if (parsed.needs_reply && email.condominium_id) {
-      await admin.functions.invoke("generate-email-draft", { body: { email_id } });
+      const { error: draftError } = await admin.functions.invoke("generate-email-draft", { body: { email_id } });
+      // Don't fail the classification over this -- category/urgency/summary
+      // are already saved above and are useful on their own. But log it
+      // instead of silently dropping it: previously a failure here (e.g. a
+      // bad OPENAI_API_KEY) left the email classified with no draft and no
+      // visible error anywhere.
+      if (draftError) {
+        console.error(`generate-email-draft invoke failed for email ${email_id}:`, draftError.message);
+      }
     }
 
     return Response.json({ ok: true });
